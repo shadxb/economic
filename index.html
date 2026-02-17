@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HSC Economics 2026 – Predictor</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: system-ui, sans-serif;
+    background: #f5f5f5;
+    color: #222;
+    padding: 16px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  header {
+    background: #1e1b4b;
+    color: white;
+    border-radius: 12px;
+    padding: 24px 20px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  header h1 { font-size: 1.4em; margin-bottom: 4px; }
+  header p  { font-size: 0.85em; opacity: 0.75; }
+
+  .counter-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .counter {
+    background: rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 8px 16px;
+    text-align: center;
+    min-width: 80px;
+  }
+  .counter strong { display: block; font-size: 1.4em; }
+  .counter span   { font-size: 0.75em; opacity: 0.8; }
+
+  .live-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: blink 1.5s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 16px;
+  }
+  .tab {
+    padding: 7px 14px;
+    border: 1px solid #ccc;
+    background: white;
+    border-radius: 20px;
+    font-size: 0.82em;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .tab.active { background: #1e1b4b; color: white; border-color: #1e1b4b; }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  .section-label {
+    font-size: 0.75em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #888;
+    margin-bottom: 10px;
+  }
+
+  .q-card {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #e5e5e5;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .q-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .q-text { font-size: 0.92em; font-weight: 600; flex: 1; line-height: 1.4; }
+  .prob-tag {
+    font-size: 0.72em;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .p95 { background: #fee2e2; color: #b91c1c; }
+  .p85 { background: #fef3c7; color: #92400e; }
+  .p75 { background: #dbeafe; color: #1d4ed8; }
+
+  .hint { font-size: 0.8em; color: #888; margin-bottom: 10px; }
+
+  .vote-row { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .vbtn {
+    padding: 5px 14px;
+    border: 1px solid #d1d5db;
+    background: white;
+    border-radius: 20px;
+    font-size: 0.82em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .vbtn:hover { border-color: #1e1b4b; background: #f0f0ff; }
+  .vbtn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .vbtn.sel-yes   { background: #10b981; border-color: #10b981; color: white; }
+  .vbtn.sel-maybe { background: #f59e0b; border-color: #f59e0b; color: white; }
+  .vbtn.sel-no    { background: #ef4444; border-color: #ef4444; color: white; }
+
+  .bars { display: none; flex-direction: column; gap: 5px; margin-top: 8px; }
+  .bars.show { display: flex; }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8em;
+  }
+  .bar-lbl { width: 72px; color: #555; }
+  .bar-track {
+    flex: 1;
+    height: 16px;
+    background: #f1f1f1;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.4s ease;
+    display: flex;
+    align-items: center;
+    padding-left: 7px;
+    font-size: 0.78em;
+    color: white;
+    font-weight: 700;
+  }
+  .bar-yes   { background: #10b981; }
+  .bar-maybe { background: #f59e0b; }
+  .bar-no    { background: #ef4444; }
+  .bar-num { color: #888; width: 30px; text-align: right; }
+
+  /* Name modal */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal {
+    background: white;
+    border-radius: 16px;
+    padding: 30px 24px;
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+  }
+  .modal h2 { margin-bottom: 8px; font-size: 1.2em; }
+  .modal p  { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+  .modal input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1em;
+    margin-bottom: 12px;
+    outline: none;
+  }
+  .modal input:focus { border-color: #1e1b4b; }
+  .modal button {
+    width: 100%;
+    padding: 11px;
+    background: #1e1b4b;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Stats drawer */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .drawer {
+    background: white;
+    width: 100%;
+    max-width: 720px;
+    max-height: 85vh;
+    border-radius: 16px 16px 0 0;
+    overflow-y: auto;
+    padding: 20px;
+    animation: up 0.3s ease;
+  }
+  @keyframes up { from { transform: translateY(80px); opacity: 0; } }
+  .drawer-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .drawer-head h2 { font-size: 1.05em; }
+  .close-btn {
+    border: none;
+    background: #f1f1f1;
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    cursor: pointer;
+    font-size: 1em;
+  }
+
+  .stats-row {
+    background: #f8f8f8;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    font-size: 0.85em;
+  }
+  .stats-row-label { font-weight: 600; margin-bottom: 8px; color: #333; line-height: 1.3; }
+  .stats-verdict { font-size: 0.78em; color: #888; margin-top: 6px; }
+  .voters-list { font-size: 0.75em; color: #aaa; margin-top: 4px; }
+
+  .fab {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #1e1b4b;
+    color: white;
+    border: none;
+    border-radius: 24px;
+    padding: 10px 18px;
+    font-size: 0.88em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 50;
+  }
+  .fab-badge {
+    background: #ec4899;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 0.8em;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #333;
+    color: white;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 200;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .no-votes { text-align: center; padding: 30px; color: #aaa; font-size: 0.9em; }
+
+  .loading-overlay {
+    position: fixed; inset: 0;
+    background: white;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid #e5e5e5;
+    border-top-color: #1e1b4b;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p style="color:#888;font-size:0.9em;">Connecting to database...</p>
+</div>
+
+<!-- Name modal -->
+<div class="modal-bg" id="nameModal" style="display:none;">
+  <div class="modal">
+    <h2>👋 Welcome!</h2>
+    <p>Enter your name so your friends can see who voted for what.</p>
+    <input type="text" id="nameInput" placeholder="Your name..." maxlength="30" />
+    <button onclick="saveName()">Start Predicting →</button>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <h1>🎓 HSC Economics 2026</h1>
+  <p>Exam Predictor · Maharashtra Board · Based on 2023–2025 Papers</p>
+  <p style="margin-top:8px;font-size:0.8em;"><span class="live-dot"></span>Live — all friends see the same votes</p>
+  <div class="counter-row">
+    <div class="counter"><strong id="cTotal">–</strong><span>Total Votes</span></div>
+    <div class="counter"><strong>30</strong><span>Questions</span></div>
+    <div class="counter"><strong id="cUsers">–</strong><span>Voters</span></div>
+  </div>
+</header>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('q1',this)">Q.1 Objective</button>
+  <button class="tab" onclick="showTab('q2',this)">Q.2 Concepts</button>
+  <button class="tab" onclick="showTab('q3',this)">Q.3 Short</button>
+  <button class="tab" onclick="showTab('q4',this)">Q.4 Agree/Disagree</button>
+  <button class="tab" onclick="showTab('q5',this)">Q.5 Table/Figure</button>
+  <button class="tab" onclick="showTab('q6',this)">Q.6 Long</button>
+</div>
+
+<!-- Q1 -->
+<div id="q1" class="tab-pane active">
+  <p class="section-label">Q.1 Objective Questions — 20 Marks</p>
+
+  <div class="q-card" data-id="q1-1" data-label="Method adopted in micro economic analysis">
+    <div class="q-top"><div class="q-text">1. Method adopted in micro economic analysis is _______</div><span class="prob-tag p95">95%</span></div>
+    <p class="hint">Options: (a) Lumping (b) Aggregative (c) Slicing (d) Inclusive</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q1-1','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q1-1','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q1-1','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q1-1"></div>
+  </div>
+
+  <div class="q-card" data-id="q1-2" data-label="Find odd word: Types of demand">
+    <div class="q-top"><div class="q-text">2. Find odd word: Types of demand — Direct, Indirect, Composite, Market</div><span class="prob-tag p95">95%</span></div>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q1-2','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q1-2','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q1-2','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q1-2"></div>
+  </div>
+
+  <div class="q-card" data-id="q1-3" data-label="A desire backed by willingness and ability to pay">
+    <div class="q-top"><div class="q-text">3. Economic term: "A desire backed by willingness and ability to pay"</div><span class="prob-tag p95">95%</span></div>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q1-3','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q1-3','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q1-3','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q1-3"></div>
+  </div>
+
+  <div class="q-card" data-id="q1-4" data-label="Complete correlation: General equilibrium : Macro :: ___ : Micro">
+    <div class="q-top"><div class="q-text">4. Complete correlation: General equilibrium : Macro :: _______ : Micro</div><span class="prob-tag p85">85%</span></div>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q1-4','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q1-4','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q1-4','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q1-4"></div>
+  </div>
+
+  <div class="q-card" data-id="q1-5" data-label="Assertion-Reasoning: Perfect competition price determination">
+    <div class="q-top"><div class="q-text">5. Assertion-Reasoning: Perfect competition price determination</div><span class="prob-tag p85">85%</span></div>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q1-5','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q1-5','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q1-5','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q1-5"></div>
+  </div>
+</div>
+
+<!-- Q2 -->
+<div id="q2" class="tab-pane">
+  <p class="section-label">Q.2 Concepts &amp; Distinguish — 12 Marks</p>
+
+  <div class="q-card" data-id="q2-1" data-label="Identify Concept: Manisha used pen and notebook to write essay">
+    <div class="q-top"><div class="q-text">Identify Concept: "Manisha used pen and notebook to write essay"</div><span class="prob-tag p95">95%</span></div>
+    <p class="hint">Answer: Utility / Form Utility</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q2-1','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q2-1','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q2-1','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q2-1"></div>
+  </div>
+
+  <div class="q-card" data-id="q2-2" data-label="Identify Concept: Invested in market for long-term funds equity and debt">
+    <div class="q-top"><div class="q-text">Identify Concept: "Invested in market for long-term funds equity and debt"</div><span class="prob-tag p95">95%</span></div>
+    <p class="hint">Answer: Capital Market</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q2-2','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q2-2','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q2-2','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q2-2"></div>
+  </div>
+
+  <div class="q-card" data-id="q2-3" data-label="Distinguish: Total Utility vs Marginal Utility">
+    <div class="q-top"><div class="q-text">Distinguish: Total Utility vs Marginal Utility</div><span class="prob-tag p95">95%</span></div>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q2-3','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q2-3','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q2-3','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q2-3"></div>
+  </div>
+
+  <div class="q-card" data-id="q2-4" data-label="Distinguish: Perfectly Elastic vs Perfectly Inelastic Demand">
+    <div class="q-top"><div class="q-text">Distinguish: Perfectly Elastic vs Perfectly Inelastic Demand</div><span class="prob-tag p95">95%</span></div>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q2-4','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q2-4','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q2-4','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q2-4"></div>
+  </div>
+
+  <div class="q-card" data-id="q2-5" data-label="Distinguish: Internal Debt vs External Debt">
+    <div class="q-top"><div class="q-text">Distinguish: Internal Debt vs External Debt</div><span class="prob-tag p85">85%</span></div>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q2-5','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q2-5','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q2-5','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q2-5"></div>
+  </div>
+</div>
+
+<!-- Q3 -->
+<div id="q3" class="tab-pane">
+  <p class="section-label">Q.3 Short Answers — 12 Marks</p>
+
+  <div class="q-card" data-id="q3-1" data-label="Explain any four features of Micro Economics">
+    <div class="q-top"><div class="q-text">Explain any four features of Micro Economics</div><span class="prob-tag p95">95%</span></div>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q3-1','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q3-1','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q3-1','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q3-1"></div>
+  </div>
+
+  <div class="q-card" data-id="q3-2" data-label="Explain any four types of Demand">
+    <div class="q-top"><div class="q-text">Explain any four types of Demand</div><span class="prob-tag p95">95%</span></div>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q3-2','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q3-2','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q3-2','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q3-2"></div>
+  </div>
+
+  <div class="q-card" data-id="q3-3" data-label="Explain any four reasons for growth of Public Expenditure">
+    <div class="q-top"><div class="q-text">Explain any four reasons for growth of Public Expenditure</div><span class="prob-tag p95">95%</span></div>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q3-3','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q3-3','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q3-3','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q3-3"></div>
+  </div>
+
+  <div class="q-card" data-id="q3-4" data-label="Explain any four problems of Capital Market in India">
+    <div class="q-top"><div class="q-text">Explain any four problems of Capital Market in India</div><span class="prob-tag p85">85%</span></div>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q3-4','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q3-4','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q3-4','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q3-4"></div>
+  </div>
+
+  <div class="q-card" data-id="q3-5" data-label="Explain any four exceptions to Law of Diminishing Marginal Utility">
+    <div class="q-top"><div class="q-text">Explain any four exceptions to Law of Diminishing Marginal Utility</div><span class="prob-tag p85">85%</span></div>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q3-5','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q3-5','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q3-5','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q3-5"></div>
+  </div>
+</div>
+
+<!-- Q4 -->
+<div id="q4" class="tab-pane">
+  <p class="section-label">Q.4 Agree / Disagree — 12 Marks</p>
+
+  <div class="q-card" data-id="q4-1" data-label="Macro economics is different from micro economics">
+    <div class="q-top"><div class="q-text">"Macro economics is different from micro economics"</div><span class="prob-tag p85">85%</span></div>
+    <p class="hint">Verdict: Agree | Different scope, tools, importance but interdependent</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q4-1','yes',this)">✅ Will Come</button>
+      <button class="vbtn" onclick="vote('q4-1','maybe',this)">🤔 50-50</button>
+      <button class="vbtn" onclick="vote('q4-1','no',this)">❌ Won't Come</button>
+    </div>
+    <div class="bars" id="bars-q4-1"></div>
+  </div>
+
+  <div class="q-card" data-id="q4-2" data-label="Price maker is the only feature of monopoly market">
+    <div class="q-top"><div class="q-text">"Price maker is the only feature of monopoly market"</div><span class="prob-tag p85">85%</span></div>
+    <p class="hint">Verdict: Disagree | Single seller, no substitutes, barriers also features</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q4-2','yes',this)">✅ Will Come</button>
+      <button class="vbtn" onclick="vote('q4-2','maybe',this)">🤔 50-50</button>
+      <button class="vbtn" onclick="vote('q4-2','no',this)">❌ Won't Come</button>
+    </div>
+    <div class="bars" id="bars-q4-2"></div>
+  </div>
+
+  <div class="q-card" data-id="q4-3" data-label="There are many sources of non-tax revenue">
+    <div class="q-top"><div class="q-text">"There are many sources of non-tax revenue"</div><span class="prob-tag p85">85%</span></div>
+    <p class="hint">Verdict: Agree | Fees, fines, grants, profits from PSUs, etc.</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q4-3','yes',this)">✅ Will Come</button>
+      <button class="vbtn" onclick="vote('q4-3','maybe',this)">🤔 50-50</button>
+      <button class="vbtn" onclick="vote('q4-3','no',this)">❌ Won't Come</button>
+    </div>
+    <div class="bars" id="bars-q4-3"></div>
+  </div>
+
+  <div class="q-card" data-id="q4-4" data-label="There are no exceptions to the law of supply">
+    <div class="q-top"><div class="q-text">"There are no exceptions to the law of supply"</div><span class="prob-tag p75">75%</span></div>
+    <p class="hint">Verdict: Disagree | Agricultural goods, perishables, expectations are exceptions</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q4-4','yes',this)">✅ Will Come</button>
+      <button class="vbtn" onclick="vote('q4-4','maybe',this)">🤔 50-50</button>
+      <button class="vbtn" onclick="vote('q4-4','no',this)">❌ Won't Come</button>
+    </div>
+    <div class="bars" id="bars-q4-4"></div>
+  </div>
+
+  <div class="q-card" data-id="q4-5" data-label="Balance of Trade and Balance of Payment are two different concepts">
+    <div class="q-top"><div class="q-text">"Balance of Trade and Balance of Payment are two different concepts"</div><span class="prob-tag p75">75%</span></div>
+    <p class="hint">Verdict: Agree | BOT = goods only, BOP = goods + services</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q4-5','yes',this)">✅ Will Come</button>
+      <button class="vbtn" onclick="vote('q4-5','maybe',this)">🤔 50-50</button>
+      <button class="vbtn" onclick="vote('q4-5','no',this)">❌ Won't Come</button>
+    </div>
+    <div class="bars" id="bars-q4-5"></div>
+  </div>
+</div>
+
+<!-- Q5 -->
+<div id="q5" class="tab-pane">
+  <p class="section-label">Q.5 Table / Figure / Passage — 8 Marks</p>
+
+  <div class="q-card" data-id="q5-1" data-label="Table: Calculate Price Index Number (Simple Aggregate Method)">
+    <div class="q-top"><div class="q-text">Table: Calculate Price Index Number (Simple Aggregate Method)</div><span class="prob-tag p85">85%</span></div>
+    <p class="hint">Formula: P₀₁ = (ΣP₁/ΣP₀) × 100</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q5-1','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q5-1','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q5-1','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q5-1"></div>
+  </div>
+
+  <div class="q-card" data-id="q5-2" data-label="Table: Complete Market Demand Schedule (Horizontal Summation)">
+    <div class="q-top"><div class="q-text">Table: Complete Market Demand Schedule (Horizontal Summation)</div><span class="prob-tag p85">85%</span></div>
+    <p class="hint">Given Consumer A, B, C demands | Calculate Market Demand = A+B+C</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q5-2','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q5-2','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q5-2','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q5-2"></div>
+  </div>
+
+  <div class="q-card" data-id="q5-3" data-label="Figure: Demand Curve Shifts">
+    <div class="q-top"><div class="q-text">Figure: Demand Curve Shifts (Increase/Decrease vs Expansion/Contraction)</div><span class="prob-tag p85">85%</span></div>
+    <p class="hint">Identify rightward shift, leftward shift, movement along curve</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q5-3','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q5-3','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q5-3','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q5-3"></div>
+  </div>
+
+  <div class="q-card" data-id="q5-4" data-label="Figure: Types of Price Elasticity on Linear Demand Curve">
+    <div class="q-top"><div class="q-text">Figure: Types of Price Elasticity on Linear Demand Curve</div><span class="prob-tag p75">75%</span></div>
+    <p class="hint">Identify perfectly elastic, unitary, perfectly inelastic points</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q5-4','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q5-4','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q5-4','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q5-4"></div>
+  </div>
+
+  <div class="q-card" data-id="q5-5" data-label="Passage: Regulated Market / Market Classification">
+    <div class="q-top"><div class="q-text">Passage: Regulated Market / Market Classification</div><span class="prob-tag p75">75%</span></div>
+    <p class="hint">Bombay Agricultural Produce Market Act, 1939 | Selling cost opinion</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q5-5','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q5-5','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q5-5','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q5-5"></div>
+  </div>
+</div>
+
+<!-- Q6 -->
+<div id="q6" class="tab-pane">
+  <p class="section-label">Q.6 Long Answers — 16 Marks</p>
+
+  <div class="q-card" data-id="q6-1" data-label="State and explain Law of Diminishing Marginal Utility with assumptions">
+    <div class="q-top"><div class="q-text">State and explain Law of Diminishing Marginal Utility with assumptions</div><span class="prob-tag p95">95%</span></div>
+    <p class="hint">Statement + Table + Diagram + 8 Assumptions + Exceptions</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q6-1','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q6-1','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q6-1','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q6-1"></div>
+  </div>
+
+  <div class="q-card" data-id="q6-2" data-label="Explain concept of Price Elasticity of Demand with its types">
+    <div class="q-top"><div class="q-text">Explain concept of Price Elasticity of Demand with its types</div><span class="prob-tag p95">95%</span></div>
+    <p class="hint">5 Types: Perfectly elastic, Inelastic, Unitary, Relatively elastic, Relatively inelastic</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q6-2','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q6-2','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q6-2','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q6-2"></div>
+  </div>
+
+  <div class="q-card" data-id="q6-3" data-label="State and explain Law of Demand with exceptions">
+    <div class="q-top"><div class="q-text">State and explain Law of Demand with exceptions</div><span class="prob-tag p85">85%</span></div>
+    <p class="hint">6 Exceptions: Giffen's paradox, Prestige goods, Speculation, Price illusion, Ignorance, Habitual goods</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q6-3','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q6-3','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q6-3','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q6-3"></div>
+  </div>
+
+  <div class="q-card" data-id="q6-4" data-label="Explain National Income — concept, features, practical difficulties">
+    <div class="q-top"><div class="q-text">Explain National Income — concept, features, and practical difficulties in measurement</div><span class="prob-tag p85">85%</span></div>
+    <p class="hint">8 Difficulties: Non-monetary, Double counting, Transfer payments, Illegal income, etc.</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q6-4','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q6-4','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q6-4','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q6-4"></div>
+  </div>
+
+  <div class="q-card" data-id="q6-5" data-label="Explain various reasons for growth of government's public expenditure">
+    <div class="q-top"><div class="q-text">Explain various reasons for growth of government's public expenditure</div><span class="prob-tag p95">95%</span></div>
+    <p class="hint">Wagner's Law | Population, Urbanization, Defense, Welfare, Development, Inflation</p>
+    <div class="vote-row">
+      <button class="vbtn" onclick="vote('q6-5','yes',this)">✅ Definitely</button>
+      <button class="vbtn" onclick="vote('q6-5','maybe',this)">🤔 Maybe</button>
+      <button class="vbtn" onclick="vote('q6-5','no',this)">❌ Unlikely</button>
+    </div>
+    <div class="bars" id="bars-q6-5"></div>
+  </div>
+</div>
+
+<!-- Stats Drawer -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeStats()">
+  <div class="drawer">
+    <div class="drawer-head">
+      <h2>📊 Live Community Stats</h2>
+      <button class="close-btn" onclick="closeStats()">✕</button>
+    </div>
+    <div id="statsBody"></div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openStats()">
+  📊 Live Stats <span class="fab-badge" id="fabCount">–</span>
+</button>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<script>
+  // ════════════════════════════════════════════════
+  // 🔧 PASTE YOUR FIREBASE CONFIG HERE
+  //    (Replace everything inside the { } below)
+  // ════════════════════════════════════════════════
+  const firebaseConfig = {
+    apiKey: "PASTE_YOUR_API_KEY",
+    authDomain: "PASTE_YOUR_AUTH_DOMAIN",
+    databaseURL: "PASTE_YOUR_DATABASE_URL",
+    projectId: "PASTE_YOUR_PROJECT_ID",
+    storageBucket: "PASTE_YOUR_STORAGE_BUCKET",
+    messagingSenderId: "PASTE_YOUR_MESSAGING_SENDER_ID",
+    appId: "PASTE_YOUR_APP_ID"
+  };
+  // ════════════════════════════════════════════════
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  let votes    = {};
+  let userName = localStorage.getItem('hscName3') || '';
+
+  // ── Init ──────────────────────────────────────
+  window.addEventListener('load', () => {
+    // Start listening to Firebase (real-time)
+    db.ref('votes').on('value', snap => {
+      votes = snap.val() || {};
+      renderAllBars();
+      updateCounters();
+      if (document.getElementById('overlay').classList.contains('open')) renderStats();
+    });
+
+    // Hide loader after first data arrives (max 3s)
+    db.ref('votes').once('value', () => {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      if (!userName) {
+        document.getElementById('nameModal').style.display = 'flex';
+      }
+    });
+
+    setTimeout(() => {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      if (!userName) document.getElementById('nameModal').style.display = 'flex';
+    }, 3000);
+  });
+
+  function saveName() {
+    const val = document.getElementById('nameInput').value.trim();
+    if (!val) { toast('Please enter your name!'); return; }
+    userName = val;
+    localStorage.setItem('hscName3', userName);
+    document.getElementById('nameModal').style.display = 'none';
+    toast('Welcome, ' + userName + '! 👋');
+  }
+  // Allow Enter key in name input
+  document.getElementById('nameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveName();
+  });
+
+  // ── Tab switch ────────────────────────────────
+  function showTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── Vote (writes to Firebase) ─────────────────
+  async function vote(qid, choice, btn) {
+    if (!userName) {
+      document.getElementById('nameModal').style.display = 'flex';
+      return;
+    }
+
+    // Disable buttons briefly to prevent double-tap
+    const card = document.querySelector(`[data-id="${qid}"]`);
+    card.querySelectorAll('.vbtn').forEach(b => b.disabled = true);
+
+    try {
+      const ref  = db.ref('votes/' + qid);
+      const snap = await ref.once('value');
+      let data   = snap.val() || { yes: 0, maybe: 0, no: 0, users: {} };
+
+      // Remove old vote from this user
+      if (data.users && data.users[safeKey(userName)]) {
+        const old = data.users[safeKey(userName)];
+        data[old] = Math.max(0, (data[old] || 0) - 1);
+      }
+
+      // Add new vote
+      data[choice]        = (data[choice] || 0) + 1;
+      data.users          = data.users || {};
+      data.users[safeKey(userName)] = choice;
+
+      await ref.set(data);
+      toast('Voted! ✅');
+    } catch (err) {
+      console.error(err);
+      toast('Error — check your internet 😕');
+    }
+
+    card.querySelectorAll('.vbtn').forEach(b => b.disabled = false);
+  }
+
+  // Firebase keys can't have . # $ [ ]
+  function safeKey(name) {
+    return name.replace(/[.#$\[\]]/g, '_');
+  }
+
+  // ── Render bars for a question ────────────────
+  function renderBars(qid) {
+    const d = votes[qid];
+    const el = document.getElementById('bars-' + qid);
+    if (!el || !d) return;
+
+    const total = (d.yes||0) + (d.maybe||0) + (d.no||0);
+    if (!total) { el.classList.remove('show'); return; }
+
+    const pct = v => Math.round((v||0) / total * 100);
+    el.classList.add('show');
+    el.innerHTML = `
+      <div class="bar-row"><span class="bar-lbl">✅ Definitely</span><div class="bar-track"><div class="bar-fill bar-yes" style="width:${pct(d.yes)}%">${pct(d.yes)>18?pct(d.yes)+'%':''}</div></div><span class="bar-num">${d.yes||0}</span></div>
+      <div class="bar-row"><span class="bar-lbl">🤔 Maybe</span><div class="bar-track"><div class="bar-fill bar-maybe" style="width:${pct(d.maybe)}%">${pct(d.maybe)>18?pct(d.maybe)+'%':''}</div></div><span class="bar-num">${d.maybe||0}</span></div>
+      <div class="bar-row"><span class="bar-lbl">❌ Unlikely</span><div class="bar-track"><div class="bar-fill bar-no" style="width:${pct(d.no)}%">${pct(d.no)>18?pct(d.no)+'%':''}</div></div><span class="bar-num">${d.no||0}</span></div>
+    `;
+
+    // Highlight current user's vote
+    if (d.users && d.users[safeKey(userName)]) {
+      highlightBtn(qid, d.users[safeKey(userName)]);
+    }
+  }
+
+  function renderAllBars() {
+    document.querySelectorAll('[data-id]').forEach(card => renderBars(card.dataset.id));
+  }
+
+  function highlightBtn(qid, choice) {
+    const card = document.querySelector(`[data-id="${qid}"]`);
+    if (!card) return;
+    const map = { yes: ['definitely','will come'], maybe: ['maybe','50-50'], no: ['unlikely',"won't come"] };
+    card.querySelectorAll('.vbtn').forEach(b => {
+      b.className = 'vbtn';
+      const txt = b.textContent.toLowerCase();
+      if ((map[choice]||[]).some(k => txt.includes(k))) b.classList.add('sel-' + choice);
+    });
+  }
+
+  // ── Counters ──────────────────────────────────
+  function updateCounters() {
+    let total = 0, usersSet = new Set();
+    Object.values(votes).forEach(d => {
+      total += (d.yes||0) + (d.maybe||0) + (d.no||0);
+      if (d.users) Object.keys(d.users).forEach(u => usersSet.add(u));
+    });
+    document.getElementById('cTotal').textContent   = total;
+    document.getElementById('cUsers').textContent   = usersSet.size;
+    document.getElementById('fabCount').textContent = total;
+  }
+
+  // ── Stats drawer ──────────────────────────────
+  function openStats() {
+    renderStats();
+    document.getElementById('overlay').classList.add('open');
+  }
+  function closeStats() {
+    document.getElementById('overlay').classList.remove('open');
+  }
+
+  function renderStats() {
+    const cards  = document.querySelectorAll('[data-id]');
+    const voted  = [...cards].filter(c => {
+      const d = votes[c.dataset.id];
+      return d && ((d.yes||0) + (d.maybe||0) + (d.no||0)) > 0;
+    });
+
+    if (!voted.length) {
+      document.getElementById('statsBody').innerHTML = '<div class="no-votes">No votes yet — be the first! 🗳️</div>';
+      return;
+    }
+
+    document.getElementById('statsBody').innerHTML = voted.map(c => {
+      const qid   = c.dataset.id;
+      const label = c.dataset.label || qid;
+      const d     = votes[qid] || {};
+      const total = (d.yes||0) + (d.maybe||0) + (d.no||0);
+      const pct   = v => Math.round((v||0) / total * 100);
+
+      let verdict = '🤷 Mixed opinions';
+      if ((d.yes||0) > (d.maybe||0) && (d.yes||0) > (d.no||0))     verdict = '🔥 Community thinks it WILL come!';
+      else if ((d.maybe||0) > (d.yes||0) && (d.maybe||0) > (d.no||0)) verdict = '🤔 Community is unsure';
+      else if ((d.no||0) > (d.yes||0) && (d.no||0) > (d.maybe||0))   verdict = '❄️ Community thinks UNLIKELY';
+
+      // Show who voted
+      const voters = d.users ? Object.entries(d.users).map(([k, v]) => {
+        const icon = {yes:'✅', maybe:'🤔', no:'❌'}[v] || '';
+        return `${icon} ${k.replace(/_/g,' ')}`;
+      }).join('  ·  ') : '';
+
+      return `
+      <div class="stats-row">
+        <div class="stats-row-label">${label}</div>
+        <div class="bar-row"><span class="bar-lbl">✅ Definitely</span><div class="bar-track"><div class="bar-fill bar-yes" style="width:${pct(d.yes)}%">${pct(d.yes)>18?pct(d.yes)+'%':''}</div></div><span class="bar-num">${d.yes||0}</span></div>
+        <div class="bar-row" style="margin:4px 0"><span class="bar-lbl">🤔 Maybe</span><div class="bar-track"><div class="bar-fill bar-maybe" style="width:${pct(d.maybe)}%">${pct(d.maybe)>18?pct(d.maybe)+'%':''}</div></div><span class="bar-num">${d.maybe||0}</span></div>
+        <div class="bar-row"><span class="bar-lbl">❌ Unlikely</span><div class="bar-track"><div class="bar-fill bar-no" style="width:${pct(d.no)}%">${pct(d.no)>18?pct(d.no)+'%':''}</div></div><span class="bar-num">${d.no||0}</span></div>
+        <div class="stats-verdict">${verdict} · ${total} vote${total!==1?'s':''}</div>
+        ${voters ? `<div class="voters-list">${voters}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // ── Toast ─────────────────────────────────────
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2200);
+  }
+</script>
+</body>
+</html>
